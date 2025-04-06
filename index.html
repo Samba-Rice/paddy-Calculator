@@ -1,0 +1,218 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paddy Calculator</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f3f4f6;
+      padding: 20px;
+      margin: 0;
+      color: #111827;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .calculator {
+      max-width: 400px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .input-group {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .input-group input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    .input-group button {
+      margin-left: 10px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      font-size: 14px;
+      border-radius: 6px;
+    }
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      gap: 10px;
+    }
+    .actions button {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .calculate-btn {
+      background: linear-gradient(to right, #10b981, #22c55e);
+      color: white;
+    }
+    .clear-all-btn {
+      background: linear-gradient(to right, #dc2626, #ef4444);
+      color: white;
+      text-shadow: 1px 1px 2px #00000066;
+    }
+    #finalPrice {
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+      margin-top: 20px;
+      display: none;
+    }
+    .history {
+      max-width: 500px;
+      margin: 30px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .history table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .history th, .history td {
+      padding: 10px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+    }
+    .history .clear-row {
+      color: #dc2626;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    #totalPriceDisplay {
+      text-align: right;
+      margin-top: 10px;
+      font-weight: bold;
+      font-size: 16px;
+      color: #1f2937;
+    }
+  </style>
+</head>
+<body>
+  <h1>Paddy Calculator</h1>
+  <div class="calculator">
+    <div class="input-group"><input id="nett" type="number" placeholder="Nett Weight" /><button onclick="document.getElementById('nett').value=''">Clear</button></div>
+    <div class="input-group"><input id="bags" type="number" placeholder="Bags" /><button onclick="document.getElementById('bags').value=''">Clear</button></div>
+    <div class="input-group"><input id="rate" type="number" placeholder="Rate" /><button onclick="document.getElementById('rate').value=''">Clear</button></div>
+    <div class="input-group"><input id="expenses" type="number" placeholder="Other Expenses (optional)" /><button onclick="document.getElementById('expenses').value=''">Clear</button></div>
+    <div class="actions">
+      <button class="calculate-btn" onclick="calculate()">Calculate</button>
+      <button class="clear-all-btn" onclick="clearAll()">Clear All Fields</button>
+    </div>
+    <div id="finalPrice">Final Price: ₹0</div>
+  </div>
+
+  <div class="history">
+    <h3>History</h3>
+    <table id="historyTable"><tbody></tbody></table>
+    <div id="totalPriceDisplay">Total: ₹0</div>
+    <button class="clear-all-btn" style="margin-top:10px;" onclick="clearHistory()">Clear All History</button>
+  </div>
+
+  <script>
+    function calculate() {
+      const nett = parseFloat(document.getElementById('nett').value);
+      const bags = parseFloat(document.getElementById('bags').value);
+      const rate = parseFloat(document.getElementById('rate').value);
+      let expensesField = document.getElementById('expenses').value;
+      const expenses = expensesField.trim() === "" ? 0 : parseFloat(expensesField);
+
+      if (isNaN(nett) || isNaN(bags) || isNaN(rate)) {
+        alert("Please fill in Nett Weight, Bags, and Rate");
+        return;
+      }
+
+      const deduction = Math.round(nett * 0.005);
+      const price = ((nett - bags - deduction) / 75) * rate - expenses;
+      const final = Math.round(price);
+
+      const resultDiv = document.getElementById('finalPrice');
+      resultDiv.style.display = 'block';
+      resultDiv.style.opacity = 0;
+      resultDiv.innerText = "Final Price: ₹" + final.toLocaleString('en-IN');
+      setTimeout(() => resultDiv.style.opacity = 1, 100);
+
+      saveToHistory(nett, bags, rate, expenses, final);
+    }
+
+    function saveToHistory(nett, bags, rate, expenses, finalPrice) {
+      const entry = {nett, bags, rate, expenses, finalPrice: `₹${finalPrice.toLocaleString('en-IN')}`};
+      const history = JSON.parse(localStorage.getItem('paddyHistory')) || [];
+      history.push(entry);
+      localStorage.setItem('paddyHistory', JSON.stringify(history));
+      renderHistory();
+      updateTotal();
+    }
+
+    function renderHistory() {
+      const history = JSON.parse(localStorage.getItem('paddyHistory')) || [];
+      const table = document.getElementById('historyTable');
+      table.innerHTML = '';
+      history.forEach((entry, index) => {
+        const row = `<tr>
+            <td>Nett: ${entry.nett}</td>
+            <td>Bags: ${entry.bags}</td>
+            <td>Rate: ${entry.rate}</td>
+            <td>Expenses: ${entry.expenses}</td>
+            <td><strong>${entry.finalPrice}</strong></td>
+            <td><span class="clear-row" onclick="removeEntry(${index})">Clear</span></td>
+          </tr>`;
+        table.innerHTML += row;
+      });
+    }
+
+    function removeEntry(index) {
+      const history = JSON.parse(localStorage.getItem('paddyHistory')) || [];
+      history.splice(index, 1);
+      localStorage.setItem('paddyHistory', JSON.stringify(history));
+      renderHistory();
+      updateTotal();
+    }
+
+    function clearAll() {
+      document.getElementById('nett').value = '';
+      document.getElementById('bags').value = '';
+      document.getElementById('rate').value = '';
+      document.getElementById('expenses').value = '';
+    }
+
+    function clearHistory() {
+      localStorage.removeItem('paddyHistory');
+      renderHistory();
+      updateTotal();
+    }
+
+    function updateTotal() {
+      const history = JSON.parse(localStorage.getItem('paddyHistory')) || [];
+      let total = history.reduce((sum, entry) => {
+        const numeric = parseFloat(entry.finalPrice.replace(/[^\d.-]/g, ''));
+        return sum + (isNaN(numeric) ? 0 : numeric);
+      }, 0);
+      document.getElementById('totalPriceDisplay').textContent = `Total: ₹${total.toLocaleString('en-IN')}`;
+    }
+
+    renderHistory();
+    updateTotal();
+  </script>
+</body>
+</html>
